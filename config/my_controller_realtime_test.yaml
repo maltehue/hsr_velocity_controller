@@ -1,0 +1,14 @@
+hsrb:
+  realtime_body_controller:
+    type: hsr_velocity_controller/HsrVelocityController
+    joints:
+    - arm_flex_joint
+    - arm_lift_joint
+    - arm_roll_joint
+    - wrist_flex_joint
+    - wrist_roll_joint
+    - head_pan_joint
+    - head_tilt_joint
+
+
+
