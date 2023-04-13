@@ -51,6 +51,11 @@ namespace hsr_velocity_controller_ns{
             {
                 js_[i] = joints_[i].getPosition();
             }
+
+            if(n.getParam("gain", vel_gain))
+            {
+                ROS_ERROR_STREAM("SUCESS gain is " << vel_gain);
+            }
             return true;
         }
 
@@ -70,7 +75,7 @@ namespace hsr_velocity_controller_ns{
                 
                 }else
                 {
-                    double next_pos = js_[i] + vel_cmd * period.toSec() * 0.6;
+                    double next_pos = js_[i] + vel_cmd * period.toSec() * vel_gain;
                     js_[i] = next_pos;
                     joints_[i].setCommand(next_pos); 
                 }

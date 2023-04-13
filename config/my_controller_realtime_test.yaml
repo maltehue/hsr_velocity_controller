@@ -9,6 +9,7 @@ hsrb:
     - wrist_roll_joint
     - head_pan_joint
     - head_tilt_joint
+    gain: 0.7
 
 
 
