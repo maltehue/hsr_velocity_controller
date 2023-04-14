@@ -79,18 +79,7 @@ namespace hsr_velocity_controller_ns{
                     js_[i] = next_pos;
                     joints_[i].setCommand(next_pos); 
                 }
-            }
-            if(counter == 10)
-            {
-                std_msgs::Float64MultiArray msg;
-                std::vector<double>  d(1, 0);
-                d[0] = period.toSec();
-                msg.data = d;
-                pub_.publish(msg);
-
-                counter = 0;
-            }
-            counter = counter + 1; 
+            } 
         }
 
         void update_adaptive(const ros::Time& time, const ros::Duration& period)
