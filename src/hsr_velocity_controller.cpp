@@ -7,7 +7,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <realtime_tools/realtime_buffer.h>
 #include <pluginlib/class_list_macros.h>
-#include <realtime_tools/realtime_publisher.h>
+// #include <realtime_tools/realtime_publisher.h>
 
 namespace hsr_velocity_controller_ns{
 
@@ -45,7 +45,7 @@ namespace hsr_velocity_controller_ns{
 
             sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &HsrVelocityController::commandCB, this);
             // pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 1);
-            pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
+            // pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
             vel_gain = 1;
             counter = 0;
             js_ = std::vector<double>(n_joints_);
@@ -144,7 +144,7 @@ namespace hsr_velocity_controller_ns{
 
         private:
         ros::Subscriber sub_command_;
-        std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray> > pub_;
+        // std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray> > pub_;
         void commandCB(const std_msgs::Float64MultiArrayConstPtr& msg)
         {
             if(msg->data.size()!=n_joints_)
