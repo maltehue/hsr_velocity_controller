@@ -84,20 +84,10 @@ namespace hsr_velocity_controller_ns{
                     js_[i] = next_pos;
                     joints_[i].setCommand(next_pos);
                     d[i]  = next_pos;
-                    old_vel_[i] = vel_cmd;
+                    // old_vel_[i] = vel_cmd;
                     // ROS_ERROR_STREAM("Next pos is " << next_pos);
                 }
             }
-
-            if(counter % 10 == 0)
-            {
-                if(pub_ && pub_->trylock())
-                {
-                    pub_->msg_.data = d;
-                    pub_->unlockAndPublish();
-                }
-            }
-            counter++; 
         }
 
         void update_adaptive(const ros::Time& time, const ros::Duration& period)
