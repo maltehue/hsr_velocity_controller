@@ -7,6 +7,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <realtime_tools/realtime_buffer.h>
 #include <pluginlib/class_list_macros.h>
+#include <realtime_tools/realtime_publisher.h>
 
 namespace hsr_velocity_controller_ns{
 
@@ -43,7 +44,8 @@ namespace hsr_velocity_controller_ns{
             commands_buffer_.writeFromNonRT(std::vector<double>(n_joints_, 0.0));
 
             sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &HsrVelocityController::commandCB, this);
-            pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 10);
+            // pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 1);
+            pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
             vel_gain = 1;
             counter = 0;
             js_ = std::vector<double>(n_joints_);
@@ -65,6 +67,7 @@ namespace hsr_velocity_controller_ns{
         void update(const ros::Time& time, const ros::Duration& period)
         {
             std::vector<double> & commands = *commands_buffer_.readFromRT();
+            std::vector<double>  d(n_joints_, 0);
 
             for(unsigned int i; i<n_joints_; i++)
             {
@@ -77,9 +80,21 @@ namespace hsr_velocity_controller_ns{
                 {
                     double next_pos = js_[i] + vel_cmd * period.toSec() * vel_gain;
                     js_[i] = next_pos;
-                    joints_[i].setCommand(next_pos); 
+                    joints_[i].setCommand(next_pos);
+                    d[i]  = next_pos;
+                    // ROS_ERROR_STREAM("Next pos is " << next_pos);
                 }
-            } 
+            }
+
+            if(counter % 10 == 0)
+            {
+                if(pub_ && pub_->trylock())
+                {
+                    pub_->msg_.data = d;
+                    pub_->unlockAndPublish();
+                }
+            }
+            counter++; 
         }
 
         void update_adaptive(const ros::Time& time, const ros::Duration& period)
@@ -107,21 +122,22 @@ namespace hsr_velocity_controller_ns{
             joints_[0].setCommand(next_pos);
             // ROS_ERROR_STREAM("posiiton " << joints_[0].getPosition() << " next position " << (joints_[0].getPosition() - 100 * period.toSec()));
             // ROS_ERROR_STREAM("Velocity of the arm flex joint " << joints_[0].getVelocity());
-            if(counter == 10)
-            {
-                std_msgs::Float64MultiArray msg;
-                std::vector<double>  d(5, 0);
-                d[0] = vel_cmd;
-                d[1] = vel_diff;
-                d[2] = vel_curr;
-                d[3] = vel_gain;
-                d[4] = next_pos;
-                msg.data = d;
-                pub_.publish(msg);
+            // if(counter == 10 && pub_->trylock())
+            // {
+            //     std_msgs::Float64MultiArray msg;
+            //     std::vector<double>  d(5, 0);
+            //     d[0] = vel_cmd;
+            //     d[1] = vel_diff;
+            //     d[2] = vel_curr;
+            //     d[3] = vel_gain;
+            //     d[4] = next_pos;
+            //     pub_->msg_.data = d;
+            //     pub_->msg_.header.stamp = ros::Time::now();
+            //     pub_.publish(msg);
 
-                counter = 0;
-            }
-            counter = counter + 1; 
+            //     counter = 0;
+            // }
+            // counter = counter + 1; 
         }
 
         std::vector< std::string > joint_names_;
@@ -134,7 +150,7 @@ namespace hsr_velocity_controller_ns{
 
         private:
         ros::Subscriber sub_command_;
-        ros::Publisher pub_;
+        std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray> > pub_;
         void commandCB(const std_msgs::Float64MultiArrayConstPtr& msg)
         {
             if(msg->data.size()!=n_joints_)
