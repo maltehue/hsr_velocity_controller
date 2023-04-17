@@ -58,6 +58,8 @@ namespace hsr_velocity_controller_ns{
             {
                 ROS_ERROR_STREAM("SUCESS gain is " << vel_gain);
             }
+
+            old_vel_ = std::vector<double>(n_joints_);
             return true;
         }
 
@@ -78,10 +80,11 @@ namespace hsr_velocity_controller_ns{
                 
                 }else
                 {
-                    double next_pos = js_[i] + vel_cmd * period.toSec() * vel_gain;
+                    double next_pos = js_[i] + vel_cmd * period.toSec() * vel_gain + (vel_cmd - joints_[i].getVelocity()) * period.toSec() ;
                     js_[i] = next_pos;
                     joints_[i].setCommand(next_pos);
                     d[i]  = next_pos;
+                    old_vel_[i] = vel_cmd;
                     // ROS_ERROR_STREAM("Next pos is " << next_pos);
                 }
             }
@@ -147,6 +150,7 @@ namespace hsr_velocity_controller_ns{
         double vel_gain;
         unsigned int counter;
         std::vector<double> js_ ;
+        std::vector<double> old_vel_ ;
 
         private:
         ros::Subscriber sub_command_;
