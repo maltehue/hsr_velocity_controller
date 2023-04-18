@@ -46,7 +46,7 @@ namespace hsr_velocity_controller_ns{
 
             sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &HsrVelocityController::commandCB, this);
             // pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 1);
-            pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
+            // pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
             vel_gain = 1;
             counter = 0;
             js_ = std::vector<double>(n_joints_);
