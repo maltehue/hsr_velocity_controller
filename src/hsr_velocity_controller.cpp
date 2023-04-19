@@ -84,6 +84,7 @@ namespace hsr_velocity_controller_ns{
                 {
                     js_[i] = joints_[i].getPosition();
                     old_vel_[i] = 0.0;
+                    old_error_[i] = 0.0;
                 
                 }else
                 {
@@ -93,7 +94,7 @@ namespace hsr_velocity_controller_ns{
                     if(old_vel_[i] > 1.0){old_vel_[i] = 1.0;}
                     else if(old_vel_[i] < -1.0){old_vel_[i] = -1.0;}
 
-                    double next_pos = js_[i] + vel_cmd * dt * vel_gain + (vel_cmd - filtered_vel_[i]) * 0.0 + old_vel_[i] * 0.1 + 5.0/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
+                    double next_pos = js_[i] + vel_cmd * dt * vel_gain + (vel_cmd - filtered_vel_[i]) * 0.1 + old_vel_[i] * 0.1 + 5.0/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
                     js_[i] = next_pos;
                     joints_[i].setCommand(next_pos);
                     old_error_[i] = (vel_cmd - filtered_vel_[i]);
