@@ -47,18 +47,17 @@ namespace hsr_velocity_controller_ns{
             sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &HsrVelocityController::commandCB, this);
             // pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 1);
             // pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
-            vel_gain = 1;
+            
             counter = 0;
             js_ = std::vector<double>(n_joints_);
             for(unsigned int i ; i<n_joints_; i++)
             {
                 js_[i] = joints_[i].getPosition();
             }
-
-            if(n.getParam("gain", vel_gain))
-            {
-                ROS_ERROR_STREAM("SUCESS gain is " << vel_gain);
-            }
+            
+            n.getParam("p_gains", p_gains_);
+            n.getParam("i_gains", i_gains_);
+            n.getParam("d_gains", d_gains_);
 
             old_vel_ = std::vector<double>(n_joints_);
             old_error_ = std::vector<double>(n_joints_);
@@ -93,8 +92,8 @@ namespace hsr_velocity_controller_ns{
                     
                     if(old_vel_[i] > 1.0){old_vel_[i] = 1.0;}
                     else if(old_vel_[i] < -1.0){old_vel_[i] = -1.0;}
-
-                    double next_pos = js_[i] + vel_cmd * dt * vel_gain + (vel_cmd - filtered_vel_[i]) * 0.1 + old_vel_[i] * 0.1 + 5.0/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
+                    
+                    double next_pos = js_[i] + vel_cmd * dt + (vel_cmd - filtered_vel_[i]) * p_gains_[i] + old_vel_[i] * i_gains_[i] + d_gains_[i]/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
                     js_[i] = next_pos;
                     joints_[i].setCommand(next_pos);
                     old_error_[i] = (vel_cmd - filtered_vel_[i]);
@@ -164,12 +163,15 @@ namespace hsr_velocity_controller_ns{
         std::vector< hardware_interface::JointHandle > joints_;
         realtime_tools::RealtimeBuffer<std::vector<double> > commands_buffer_;
         unsigned int n_joints_;
-        double vel_gain;
         unsigned int counter;
         std::vector<double> js_ ;
         std::vector<double> old_vel_ ;
         std::vector<double> old_error_ ;
         std::vector<double> filtered_vel_ ;
+        std::vector<double> p_gains_;
+        std::vector<double> i_gains_;
+        std::vector<double> d_gains_;
+        
 
         private:
         ros::Subscriber sub_command_;
