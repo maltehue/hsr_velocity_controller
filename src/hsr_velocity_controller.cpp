@@ -68,7 +68,7 @@ namespace hsr_velocity_controller_ns{
             n.getParam("i_gains", i_gains_);
             n.getParam("d_gains", d_gains_);
 
-            old_vel_ = std::vector<double>(n_joints_);
+            old_integrator_ = std::vector<double>(n_joints_);
             old_error_ = std::vector<double>(n_joints_);
             filtered_vel_ = std::vector<double>(n_joints_);
 
@@ -94,24 +94,29 @@ namespace hsr_velocity_controller_ns{
                 if(vel_cmd == 0.0)
                 {
                     js_[i] = joints_[i].getPosition();
-                    old_vel_[i] = 0.0;
+                    old_integrator_[i] = 0.0;
                     old_error_[i] = 0.0;
                 
                 }else
                 {
-                    // integrator = old_vel_[i] + (vel_cmd - filtered_vel_[i]) * dt;
-                    old_vel_[i] += (vel_cmd - filtered_vel_[i]) * dt;
+                    double new_integrator = old_integrator_[i] + (vel_cmd - filtered_vel_[i]) * dt;
+                    old_integrator_[i] += (vel_cmd - filtered_vel_[i]) * dt;
                     
-                    if(old_vel_[i] > 1.0){old_vel_[i] = 1.0;}
-                    else if(old_vel_[i] < -1.0){old_vel_[i] = -1.0;}
+                    if(old_integrator_[i] > 1.0){old_integrator_[i] = 1.0;}
+                    else if(old_integrator_[i] < -1.0){old_integrator_[i] = -1.0;}
                     
-                    double next_pos = js_[i] + vel_cmd * dt + (vel_cmd - filtered_vel_[i]) * p_gains_[i] + old_vel_[i] * i_gains_[i] + d_gains_[i]/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
+                    double next_pos = js_[i] + vel_cmd * dt + (vel_cmd - filtered_vel_[i]) * p_gains_[i] + old_integrator_[i] * i_gains_[i] + d_gains_[i]/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
                     js_[i] = next_pos;
+
+                    // clamp the output by the joint limits
+                    if(next_pos > joints_urdf_[i]->limits->upper){next_pos = joints_urdf_[i]->limits->upper;}
+                    else if(next_pos < joints_urdf_[i]->limits->lower){next_pos = joints_urdf_[i]->limits->lower;}
+                    
                     joints_[i].setCommand(next_pos);
                     old_error_[i] = (vel_cmd - filtered_vel_[i]);
                     
                     d[i]  = vel_cmd - filtered_vel_[i];
-                    // old_vel_[i] = vel_cmd;
+                    // old_integrator_[i] = vel_cmd;
                     // ROS_ERROR_STREAM("Next pos is " << next_pos);
                 }
             }
@@ -177,7 +182,7 @@ namespace hsr_velocity_controller_ns{
         unsigned int n_joints_;
         unsigned int counter;
         std::vector<double> js_ ;
-        std::vector<double> old_vel_ ;
+        std::vector<double> old_integrator_ ;
         std::vector<double> old_error_ ;
         std::vector<double> filtered_vel_ ;
         std::vector<double> p_gains_;
