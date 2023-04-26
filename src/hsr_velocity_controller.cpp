@@ -67,6 +67,7 @@ namespace hsr_velocity_controller_ns{
             n.getParam("p_gains", p_gains_);
             n.getParam("i_gains", i_gains_);
             n.getParam("d_gains", d_gains_);
+            n.getParam("feedforward_gains", ff_gains_);
 
             old_integrator_ = std::vector<double>(n_joints_);
             old_error_ = std::vector<double>(n_joints_);
@@ -101,7 +102,10 @@ namespace hsr_velocity_controller_ns{
                     double error = (vel_cmd - filtered_vel_[i]);
                     double new_integrator = old_integrator_[i] + error * dt;
                     
-                    double next_pos = joints_[i].getPosition() + vel_cmd * dt + error * p_gains_[i] + new_integrator * i_gains_[i] + d_gains_[i]/dt *(error - old_error_[i]);
+                    double next_pos = joints_[i].getPosition() + vel_cmd * dt * ff_gains_[i] 
+                                        + error * p_gains_[i] 
+                                        + new_integrator * i_gains_[i] 
+                                        + d_gains_[i]/dt * (error - old_error_[i]);
 
                     // clamp the output by the joint limits and disable further integration integration
                     if(next_pos > joints_urdf_[i]->limits->upper)
@@ -193,6 +197,7 @@ namespace hsr_velocity_controller_ns{
         std::vector<double> p_gains_;
         std::vector<double> i_gains_;
         std::vector<double> d_gains_;
+        std::vector<double> ff_gains_;
         std::vector<urdf::JointConstSharedPtr> joints_urdf_;
 
 
