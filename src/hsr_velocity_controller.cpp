@@ -89,7 +89,7 @@ namespace hsr_velocity_controller_ns{
             {
                 double vel_cmd = commands[i];
                 // filter the velocity
-                float alpha = 0.99f;
+                float alpha = 0.95f;
                 filtered_vel_[i] = (1.0f - alpha) * filtered_vel_[i] + alpha * joints_[i].getVelocity();
                 if(vel_cmd == 0.0)
                 {
@@ -99,18 +99,24 @@ namespace hsr_velocity_controller_ns{
                 
                 }else
                 {
-                    double new_integrator = old_integrator_[i] + (vel_cmd - filtered_vel_[i]) * dt;
+                    // double new_integrator = old_integrator_[i] + (vel_cmd - filtered_vel_[i]) * dt;
+                    // double error = (vel_cmd - filtered_vel_[i]);
                     old_integrator_[i] += (vel_cmd - filtered_vel_[i]) * dt;
-                    
-                    if(old_integrator_[i] > 1.0){old_integrator_[i] = 1.0;}
-                    else if(old_integrator_[i] < -1.0){old_integrator_[i] = -1.0;}
                     
                     double next_pos = js_[i] + vel_cmd * dt + (vel_cmd - filtered_vel_[i]) * p_gains_[i] + old_integrator_[i] * i_gains_[i] + d_gains_[i]/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
                     js_[i] = next_pos;
 
-                    // clamp the output by the joint limits
-                    if(next_pos > joints_urdf_[i]->limits->upper){next_pos = joints_urdf_[i]->limits->upper;}
-                    else if(next_pos < joints_urdf_[i]->limits->lower){next_pos = joints_urdf_[i]->limits->lower;}
+                    // clamp the output by the joint limits and disable(revert) further integration integration
+                    if(next_pos > joints_urdf_[i]->limits->upper)
+                    {
+                        next_pos = joints_urdf_[i]->limits->upper;
+                        old_integrator_[i] -= (vel_cmd - filtered_vel_[i]) * dt; // revert += at line 103
+                    }
+                    else if(next_pos < joints_urdf_[i]->limits->lower)
+                    {
+                        next_pos = joints_urdf_[i]->limits->lower;
+                        old_integrator_[i] -= (vel_cmd - filtered_vel_[i]) * dt; // revert += at line 103
+                    }
                     
                     joints_[i].setCommand(next_pos);
                     old_error_[i] = (vel_cmd - filtered_vel_[i]);
