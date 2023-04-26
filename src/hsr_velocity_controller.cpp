@@ -84,8 +84,7 @@ namespace hsr_velocity_controller_ns{
             std::vector<double>  d(n_joints_+1, 0);
             
             double dt = period.toNSec() / 1e9;
-
-            for(unsigned int i; i<n_joints_; i++)
+            for(unsigned int i = 0; i<n_joints_; i++) // the problem was that the i was not initialized...
             {
                 double vel_cmd = commands[i];
                 // filter the velocity
@@ -99,31 +98,31 @@ namespace hsr_velocity_controller_ns{
                 
                 }else
                 {
-                    // double new_integrator = old_integrator_[i] + (vel_cmd - filtered_vel_[i]) * dt;
-                    // double error = (vel_cmd - filtered_vel_[i]);
-                    old_integrator_[i] += (vel_cmd - filtered_vel_[i]) * dt;
+                    double error = (vel_cmd - filtered_vel_[i]);
+                    double new_integrator = old_integrator_[i] + error * dt;
                     
-                    double next_pos = js_[i] + vel_cmd * dt + (vel_cmd - filtered_vel_[i]) * p_gains_[i] + old_integrator_[i] * i_gains_[i] + d_gains_[i]/dt *((vel_cmd - filtered_vel_[i]) - old_error_[i]);
-                    js_[i] = next_pos;
+                    double next_pos = joints_[i].getPosition() + vel_cmd * dt + error * p_gains_[i] + new_integrator * i_gains_[i] + d_gains_[i]/dt *(error - old_error_[i]);
 
-                    // clamp the output by the joint limits and disable(revert) further integration integration
+                    // clamp the output by the joint limits and disable further integration integration
                     if(next_pos > joints_urdf_[i]->limits->upper)
                     {
                         next_pos = joints_urdf_[i]->limits->upper;
-                        old_integrator_[i] -= (vel_cmd - filtered_vel_[i]) * dt; // revert += at line 103
                     }
                     else if(next_pos < joints_urdf_[i]->limits->lower)
                     {
                         next_pos = joints_urdf_[i]->limits->lower;
-                        old_integrator_[i] -= (vel_cmd - filtered_vel_[i]) * dt; // revert += at line 103
+                    }
+                    else
+                    {
+                        old_integrator_[i] = new_integrator;
                     }
                     
+                    // TODO: test that
+                    // js_[i] = next_pos;  // Currently not needed, could be used agin on the real robot
                     joints_[i].setCommand(next_pos);
-                    old_error_[i] = (vel_cmd - filtered_vel_[i]);
+                    old_error_[i] = error;
                     
                     d[i]  = vel_cmd - filtered_vel_[i];
-                    // old_integrator_[i] = vel_cmd;
-                    // ROS_ERROR_STREAM("Next pos is " << next_pos);
                 }
             }
 
