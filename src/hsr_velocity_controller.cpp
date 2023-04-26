@@ -8,7 +8,7 @@
 #include <realtime_tools/realtime_buffer.h>
 #include <pluginlib/class_list_macros.h>
 #include <realtime_tools/realtime_publisher.h>
-#include <control_toolbox/pid.h>
+#include <urdf/model.h>
 
 namespace hsr_velocity_controller_ns{
 
@@ -47,12 +47,21 @@ namespace hsr_velocity_controller_ns{
             sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &HsrVelocityController::commandCB, this);
             // pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 1);
             // pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
+            urdf::Model urdf;
+            if (!urdf.initParamWithNodeHandle("robot_description", n))
+            {
+                ROS_ERROR("Failed to parse urdf file");
+                return false;
+            }
             
             counter = 0;
             js_ = std::vector<double>(n_joints_);
+            joints_urdf_ = std::vector<urdf::JointConstSharedPtr>(n_joints_);
             for(unsigned int i ; i<n_joints_; i++)
             {
                 js_[i] = joints_[i].getPosition();
+                joints_urdf_[i] = urdf.getJoint(joint_names_[i]);
+                ROS_ERROR_STREAM("Joint " << joint_names_[i] << " lower limit " << joints_urdf_[i]->limits->lower << " upper limit " << joints_urdf_[i]->limits->upper);
             }
             
             n.getParam("p_gains", p_gains_);
@@ -62,6 +71,7 @@ namespace hsr_velocity_controller_ns{
             old_vel_ = std::vector<double>(n_joints_);
             old_error_ = std::vector<double>(n_joints_);
             filtered_vel_ = std::vector<double>(n_joints_);
+
             return true;
         }
 
@@ -73,6 +83,8 @@ namespace hsr_velocity_controller_ns{
             std::vector<double> & commands = *commands_buffer_.readFromRT();
             std::vector<double>  d(n_joints_+1, 0);
             
+            double dt = period.toNSec() / 1e9;
+
             for(unsigned int i; i<n_joints_; i++)
             {
                 double vel_cmd = commands[i];
@@ -87,7 +99,7 @@ namespace hsr_velocity_controller_ns{
                 
                 }else
                 {
-                    double dt = period.toNSec() / 1e9;
+                    // integrator = old_vel_[i] + (vel_cmd - filtered_vel_[i]) * dt;
                     old_vel_[i] += (vel_cmd - filtered_vel_[i]) * dt;
                     
                     if(old_vel_[i] > 1.0){old_vel_[i] = 1.0;}
@@ -171,12 +183,12 @@ namespace hsr_velocity_controller_ns{
         std::vector<double> p_gains_;
         std::vector<double> i_gains_;
         std::vector<double> d_gains_;
-        
+        std::vector<urdf::JointConstSharedPtr> joints_urdf_;
+
 
         private:
         ros::Subscriber sub_command_;
         std::unique_ptr<realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray> > pub_;
-        control_toolbox::Pid pid_controller_;
 
         void commandCB(const std_msgs::Float64MultiArrayConstPtr& msg)
         {
