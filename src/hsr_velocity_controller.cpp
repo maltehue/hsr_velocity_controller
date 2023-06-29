@@ -72,6 +72,7 @@ namespace hsr_velocity_controller_ns{
             old_integrator_ = std::vector<double>(n_joints_);
             old_error_ = std::vector<double>(n_joints_);
             filtered_vel_ = std::vector<double>(n_joints_);
+            next_pos_ = std::vector<double>(n_joints_);
 
             return true;
         }
@@ -131,10 +132,11 @@ namespace hsr_velocity_controller_ns{
                     
                     // TODO: test that
                     // js_[i] = next_pos;  // Currently not needed, could be used agin on the real robot
+                    next_pos_[i] = next_pos;
                     joints_[i].setCommand(next_pos);
                     old_error_[i] = error;
                     
-                    d[i]  = next_pos;
+                    //d[i]  = next_pos;
                 }
             }
 
@@ -143,7 +145,7 @@ namespace hsr_velocity_controller_ns{
                 if(pub_ && pub_->trylock())
                 {
                     //d[n_joints_] = period.toSec();
-                    pub_->msg_.data = d;
+                    pub_->msg_.data = next_pos_;
                     pub_->unlockAndPublish();
                 }
             }
