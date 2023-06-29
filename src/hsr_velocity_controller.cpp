@@ -46,7 +46,7 @@ namespace hsr_velocity_controller_ns{
 
             sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &HsrVelocityController::commandCB, this);
             // pub_ = n.advertise<std_msgs::Float64MultiArray>("controller_state", 1);
-            // pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 4));
+            pub_.reset(new realtime_tools::RealtimePublisher<std_msgs::Float64MultiArray>(n, "controller_state", 1));
             urdf::Model urdf;
             if (!urdf.initParamWithNodeHandle("robot_description", n))
             {
@@ -111,10 +111,18 @@ namespace hsr_velocity_controller_ns{
                     if(next_pos > joints_urdf_[i]->limits->upper)
                     {
                         next_pos = joints_urdf_[i]->limits->upper;
+                        if(error < 0)
+                        {
+                            old_integrator_[i] = new_integrator;
+                        }
                     }
                     else if(next_pos < joints_urdf_[i]->limits->lower)
                     {
                         next_pos = joints_urdf_[i]->limits->lower;
+                        if(error > 0)
+                        {
+                            old_integrator_[i] = new_integrator;
+                        }
                     }
                     else
                     {
