@@ -204,6 +204,7 @@ namespace hsr_velocity_controller_ns{
         std::vector<double> old_integrator_ ;
         std::vector<double> old_error_ ;
         std::vector<double> filtered_vel_ ;
+        std::vector<double> next_pos_ ;
         std::vector<double> p_gains_;
         std::vector<double> i_gains_;
         std::vector<double> d_gains_;
