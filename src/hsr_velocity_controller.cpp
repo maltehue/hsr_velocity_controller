@@ -134,7 +134,7 @@ namespace hsr_velocity_controller_ns{
                     joints_[i].setCommand(next_pos);
                     old_error_[i] = error;
                     
-                    d[i]  = vel_cmd - filtered_vel_[i];
+                    d[i]  = next_pos;
                 }
             }
 
@@ -143,7 +143,7 @@ namespace hsr_velocity_controller_ns{
                 if(pub_ && pub_->trylock())
                 {
                     d[n_joints_] = period.toSec();
-                    pub_->msg_.data = filtered_vel_;
+                    pub_->msg_.data = d;
                     pub_->unlockAndPublish();
                 }
             }
