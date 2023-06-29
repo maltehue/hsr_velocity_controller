@@ -142,7 +142,7 @@ namespace hsr_velocity_controller_ns{
             {
                 if(pub_ && pub_->trylock())
                 {
-                    d[n_joints_] = period.toSec();
+                    //d[n_joints_] = period.toSec();
                     pub_->msg_.data = d;
                     pub_->unlockAndPublish();
                 }
